@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Magic Sort</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main class="page">
+    <header class="menu-header">
+      <h1>Magic Sort</h1>
+      <p id="summary"></p>
+    </header>
+    <nav class="level-grid" id="levels"></nav>
+    <footer class="menu-footer">
+      <button class="link-button" id="reset">Reset progress</button>
+    </footer>
+  </main>
+
+  <script src="js/levels.js"></script>
+  <script src="js/progress.js"></script>
+  <script>
+    (function () {
+      'use strict';
+      var grid = document.getElementById('levels');
+
+      function render() {
+        grid.innerHTML = '';
+        var done = 0;
+        var currentMarked = false;
+        for (var n = 1; n <= LEVELS.length; n++) {
+          var tile = document.createElement('a');
+          tile.className = 'level-tile';
+          tile.textContent = n;
+          if (Progress.isCompleted(n)) {
+            done++;
+            tile.classList.add('done');
+            var best = document.createElement('small');
+            best.textContent = Progress.bestMoves(n) + ' moves';
+            tile.appendChild(best);
+          } else if (Progress.isUnlocked(n) && !currentMarked) {
+            tile.classList.add('current');
+            currentMarked = true;
+          } else {
+            tile.classList.add('locked');
+          }
+          if (Progress.isUnlocked(n)) tile.href = 'level.html?level=' + n;
+          grid.appendChild(tile);
+        }
+        document.getElementById('summary').textContent =
+          done + ' of ' + LEVELS.length + ' levels completed';
+      }
+
+      document.getElementById('reset').addEventListener('click', function () {
+        if (confirm('Start over from level 1?')) {
+          Progress.reset();
+          render();
+        }
+      });
+
+      render();
+    })();
+  </script>
+</body>
+</html>
