@@ -160,13 +160,14 @@ button.primary, .button.primary {
 
 .board {
   /* --w (bottle width), --cols, --ratio and the gaps are set by game.js */
+  --tilt: 0.29; /* height/width of ovals: how much we look down into the bottles */
   display: grid;
   grid-template-columns: repeat(var(--cols), var(--w));
   column-gap: var(--col-gap);
   row-gap: var(--row-gap);
   justify-content: center;
   align-items: end;
-  padding-top: calc(var(--w) * 0.4);
+  padding-top: calc(var(--w) * 0.5);
   margin: 12px 0 24px;
 }
 
@@ -196,22 +197,35 @@ button.primary, .button.primary {
   height: calc(var(--w) * 0.3);
   margin: 0 auto calc(var(--w) * -0.06);
   border: 2px solid var(--glass-edge);
+  border-top: none;
   border-bottom: none;
-  border-radius: calc(var(--w) * 0.08) calc(var(--w) * 0.08) 0 0;
   background: linear-gradient(90deg, #5d5c8d, #525181 45%, #5a5989);
 }
 
-/* the rim at the top of the neck */
-.neck::before {
+/* The mouth of the bottle, seen from slightly above like the liquid surface:
+   an oval glass rim around a darker oval opening. */
+.neck::before,
+.neck::after {
   content: "";
   position: absolute;
-  left: -14%;
-  right: -14%;
-  top: -2px;
-  height: calc(var(--w) * 0.1);
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+}
+
+.neck::before {
+  width: calc(var(--w) * 0.72);
+  height: calc(var(--w) * 0.72 * var(--tilt));
   border: 2px solid var(--glass-edge);
-  border-radius: calc(var(--w) * 0.06);
-  background: #5d5c8d;
+  background: linear-gradient(90deg, #6a69a0, #605f94 45%, #6a69a0);
+}
+
+.neck::after {
+  width: calc(var(--w) * 0.46);
+  height: calc(var(--w) * 0.46 * var(--tilt));
+  background: radial-gradient(ellipse at 50% 70%, #3d3c68, #2f2e57);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 .body {
@@ -274,7 +288,7 @@ button.primary, .button.primary {
   left: 0;
   right: 0;
   top: 0;
-  height: calc(var(--w) * 0.24);
+  height: calc(var(--w) * 0.86 * var(--tilt));
   transform: translateY(-50%);
   border-radius: 50%;
   background: radial-gradient(ellipse at 50% 45%, var(--l), var(--c) 90%);
@@ -303,7 +317,7 @@ button.primary, .button.primary {
 .rope {
   position: absolute;
   z-index: 4;
-  top: calc(var(--w) * 0.1);
+  top: calc(var(--w) * 0.13);
   left: 50%;
   width: 72%;
   height: calc(var(--w) * 0.2);
