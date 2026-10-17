@@ -11,7 +11,10 @@
     <header class="game-header">
       <a class="button" href="index.html" aria-label="Back to levels">&larr; Levels</a>
       <h1 id="title">Level</h1>
-      <span class="moves" id="moves">0 moves</span>
+      <span class="header-right">
+        <span class="moves" id="moves">0 moves</span>
+        <button class="sound-toggle" id="sound" aria-label="Sound on or off"></button>
+      </span>
     </header>
 
     <div class="board" id="board"></div>
@@ -38,6 +41,7 @@
   <script src="js/rules.js"></script>
   <script src="js/levels.js"></script>
   <script src="js/progress.js"></script>
+  <script src="js/sound.js"></script>
   <script src="js/game.js"></script>
 </body>
 </html>

@@ -112,9 +112,14 @@
     var el = document.createElement('div');
     el.className = 'bottle';
     if (i === selected) el.classList.add('selected');
-    if (Rules.isCollector(spec)) {
-      el.classList.add('collector');
-      if (tube.length === spec.capacity) el.classList.add('complete');
+    if (Rules.isCollector(spec)) el.classList.add('collector');
+    if (Rules.isCapped(state.tubes, state.specs, i)) {
+      el.classList.add('complete');
+      var cap = document.createElement('div');
+      cap.className = 'cap';
+      // drop the cap in when this pour just filled the bottle
+      if (lastPour && lastPour.to === i) cap.classList.add('new');
+      el.appendChild(cap);
     } else if (Rules.isTubeComplete(tube, spec)) {
       el.classList.add('complete');
     }
@@ -200,7 +205,9 @@
   }
 
   function canSelect(i) {
-    return state.tubes[i].length > 0 && !Rules.isCollector(state.specs[i]);
+    return state.tubes[i].length > 0 &&
+      !Rules.isCollector(state.specs[i]) &&
+      !Rules.isCapped(state.tubes, state.specs, i);
   }
 
   function onTubeClick(i, el) {
@@ -210,26 +217,40 @@
     lastPour = null;
 
     if (selected === null) {
-      if (!canSelect(i)) return shake(el);
+      if (!canSelect(i)) {
+        Sound.error();
+        return shake(el);
+      }
+      Sound.pick();
       selected = i;
     } else if (selected === i) {
+      Sound.drop();
       selected = null;
     } else if (Rules.canPour(tubes, specs, selected, i)) {
       saveHistory();
+      var before = tubes[i].length;
       var amount = Rules.pour(tubes, specs, selected, i);
+      Sound.pour(amount, before, specs[i].capacity);
       lastPour = { to: i, amount: amount };
       state.moves++;
       selected = null;
+      if (Rules.isCapped(tubes, specs, i)) Sound.fill(0.3);
       if (Rules.isSolved(tubes, specs)) return win();
+    } else if (canSelect(i)) {
+      // can't pour there: pick up the tapped bottle instead
+      Sound.pick();
+      selected = i;
     } else {
+      Sound.error();
       shake(el);
-      selected = canSelect(i) ? i : null;
+      selected = null;
     }
     render();
   }
 
   function win() {
     won = true;
+    Sound.win(0.6);
     render();
     Progress.complete(levelNo, state.moves);
 
@@ -271,6 +292,17 @@
     lastPour = null;
     render();
   });
+
+  var soundBtn = document.getElementById('sound');
+  function showSound() {
+    soundBtn.textContent = Sound.isMuted() ? '\uD83D\uDD07' : '\uD83D\uDD0A';
+  }
+  soundBtn.addEventListener('click', function () {
+    Sound.setMuted(!Sound.isMuted());
+    showSound();
+    Sound.pick();
+  });
+  showSound();
 
   var resizeTimer;
   window.addEventListener('resize', function () {

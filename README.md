@@ -4,7 +4,8 @@ A simple web version of the "Magic Sort" liquid sorting puzzle.
 
 Tap a tube to pick it up, then tap another tube to pour. Liquid can only be
 poured onto the same color or into an empty tube, and only if there is room.
-A level is finished when every tube holds a single color.
+A level is finished when every tube holds a single color. A bottle that is
+full of one color gets a cork and can't be used any more.
 
 Every 5th level (marked with a star) is a **big level**, like in the real
 game: a few colors spread over many bottles, plus tall **collector** bottles
@@ -15,6 +16,8 @@ when the collectors are full and every other bottle is sorted.
 - **Undo** takes back the last move.
 - **Restart** starts the level again.
 - **+1 Tube** adds one extra empty tube (once per level) if you get stuck.
+- The speaker button turns the sounds (pick up, put down, pour, cork,
+  level complete) on or off.
 
 Progress is saved in the browser, so finished levels stay green and the next
 level unlocks.
@@ -56,5 +59,6 @@ again.
 - `level.html`, `js/game.js` – the game board
 - `js/rules.js` – pouring rules, shared by the game and the generator
 - `js/progress.js` – saved progress
+- `js/sound.js` – sound effects, made with the Web Audio API (no sound files)
 - `js/levels.js` – generated level data
 - `css/style.css` – styles

@@ -152,10 +152,21 @@ button.primary, .button.primary {
 
 .game-header h1 { font-size: 1.3rem; }
 
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .moves {
   color: var(--muted);
-  min-width: 70px;
   text-align: right;
+}
+
+.sound-toggle {
+  padding: 6px 8px;
+  font-size: 1.1rem;
+  line-height: 1;
 }
 
 .board {
@@ -232,17 +243,11 @@ button.primary, .button.primary {
   position: relative;
   flex: 1;
   border: 2px solid var(--glass-edge);
-  border-radius:
-    calc(var(--w) * 0.42) calc(var(--w) * 0.42) calc(var(--w) * 0.34) calc(var(--w) * 0.34) /
-    calc(var(--w) * 0.3) calc(var(--w) * 0.3) calc(var(--w) * 0.3) calc(var(--w) * 0.3);
+  /* shoulders and bottom are halves of an oval with the same tilt as the
+     liquid surface and the mouth, so the whole bottle shares one perspective */
+  border-radius: 50% / calc(var(--w) * var(--tilt) / 2);
   background: linear-gradient(90deg, #5e5d8e 0%, #545383 25%, #4f4e7d 60%, #5b5a8b 100%);
   box-shadow: inset 0 0 calc(var(--w) * 0.12) rgba(255, 255, 255, 0.08);
-}
-
-.collector .body {
-  border-radius:
-    calc(var(--w) * 0.3) calc(var(--w) * 0.3) calc(var(--w) * 0.34) calc(var(--w) * 0.34) /
-    calc(var(--w) * 0.24) calc(var(--w) * 0.24) calc(var(--w) * 0.3) calc(var(--w) * 0.3);
 }
 
 /* glass shine */
@@ -252,8 +257,8 @@ button.primary, .button.primary {
   z-index: 3;
   left: 13%;
   width: 11%;
-  top: calc(var(--w) * 0.22);
-  bottom: calc(var(--w) * 0.22);
+  top: calc(var(--w) * 0.16);
+  bottom: calc(var(--w) * 0.16);
   border-radius: calc(var(--w) * 0.06);
   background: linear-gradient(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.12));
   pointer-events: none;
@@ -263,8 +268,8 @@ button.primary, .button.primary {
   position: absolute;
   left: 7%;
   right: 7%;
-  bottom: calc(var(--w) * 0.06);
-  top: calc(var(--w) * 0.2);
+  bottom: calc(var(--w) * 0.05);
+  top: calc(var(--w) * 0.19);
   display: flex;
   flex-direction: column-reverse;
 }
@@ -278,7 +283,7 @@ button.primary, .button.primary {
 }
 
 .seg:first-child {
-  border-radius: 0 0 calc(var(--w) * 0.3) calc(var(--w) * 0.3) / 0 0 calc(var(--w) * 0.26) calc(var(--w) * 0.26);
+  border-radius: 0 0 50% 50% / 0 0 calc(var(--w) * 0.86 * var(--tilt) / 2) calc(var(--w) * 0.86 * var(--tilt) / 2);
 }
 
 /* the liquid surface on top */
@@ -349,6 +354,41 @@ button.primary, .button.primary {
   bottom: 14%;
   border-radius: 35% 35% 40% 40%;
   background: var(--c);
+}
+
+/* cork on a finished bottle, in the same perspective as the mouth */
+.cap {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  top: calc(var(--w) * -0.16);
+  width: calc(var(--w) * 0.62);
+  height: calc(var(--w) * 0.36);
+  transform: translateX(-50%);
+  border-radius: 0 0 50% 50% / 0 0 calc(var(--w) * 0.62 * var(--tilt) / 2) calc(var(--w) * 0.62 * var(--tilt) / 2);
+  background: linear-gradient(90deg, #8a5a2b, #c8915a 25%, #e2b07a 40%, #c8915a 60%, #8a5a2b);
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.3);
+}
+
+.cap::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: calc(var(--w) * 0.62 * var(--tilt));
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 45%, #f0c693, #d29b62 80%);
+  box-shadow: inset 0 -1px 0 rgba(120, 70, 30, 0.6);
+}
+
+.cap.new { animation: cap-on 0.35s ease-in 0.25s backwards; }
+
+@keyframes cap-on {
+  from { transform: translate(-50%, calc(var(--w) * -0.8)); opacity: 0; }
+  70% { opacity: 1; }
+  to { transform: translateX(-50%); }
 }
 
 .bottle.shake { animation: shake 0.3s; }

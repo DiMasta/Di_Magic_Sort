@@ -45,11 +45,26 @@
     return { tubes: tubes, specs: specs };
   }
 
+  function isTubeComplete(tube, spec) {
+    return tube.length === spec.capacity && isUniform(tube);
+  }
+
+  // A finished bottle gets a cap and can't be used any more: a full
+  // collector, or a full single-color bottle whose color has no collector
+  // (if it has one, the bottle still has to be poured into it).
+  function isCapped(tubes, specs, i) {
+    var spec = specs[i];
+    if (isCollector(spec)) return tubes[i].length === spec.capacity;
+    if (!isTubeComplete(tubes[i], spec)) return false;
+    var color = tubes[i][0];
+    return !specs.some(function (s) { return s.color === color; });
+  }
+
   function canPour(tubes, specs, i, j) {
     if (i === j) return false;
     var from = tubes[i];
     var to = tubes[j];
-    if (!from.length || isCollector(specs[i])) return false;
+    if (!from.length || isCollector(specs[i]) || isCapped(tubes, specs, i)) return false;
     if (to.length >= specs[j].capacity) return false;
     var c = topColor(from);
     if (isCollector(specs[j])) return c === specs[j].color;
@@ -64,10 +79,6 @@
     var amount = Math.min(topRun(from), specs[j].capacity - to.length);
     for (var k = 0; k < amount; k++) to.push(from.pop());
     return amount;
-  }
-
-  function isTubeComplete(tube, spec) {
-    return tube.length === spec.capacity && isUniform(tube);
   }
 
   // Solved when every normal tube is empty or full of one color,
@@ -99,6 +110,7 @@
     canPour: canPour,
     pour: pour,
     isTubeComplete: isTubeComplete,
+    isCapped: isCapped,
     isSolved: isSolved,
     hasAnyMove: hasAnyMove,
     cloneTubes: cloneTubes
