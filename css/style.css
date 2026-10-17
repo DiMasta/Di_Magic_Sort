@@ -1,11 +1,11 @@
 :root {
-  --bg: #1d1450;
-  --bg-2: #2b1f6b;
+  --bg: #403f6b;
+  --bg-2: #4d4c7c;
   --text: #ffffff;
   --muted: #b9b0e8;
   --accent: #ffc83d;
   --glass: rgba(255, 255, 255, 0.12);
-  --glass-border: rgba(255, 255, 255, 0.55);
+  --glass-edge: #9599d0;
 }
 
 * { box-sizing: border-box; }
@@ -18,7 +18,7 @@ html, body {
 body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color: var(--text);
-  background: radial-gradient(circle at 50% 0%, var(--bg-2), var(--bg) 70%) fixed;
+  background: radial-gradient(circle at 50% 30%, var(--bg-2), var(--bg) 75%) fixed;
   background-color: var(--bg);
   -webkit-tap-highlight-color: transparent;
   user-select: none;
@@ -94,6 +94,19 @@ button.primary, .button.primary {
   border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
+.level-tile { position: relative; }
+
+/* big levels get a star in the corner */
+.level-tile.big::after {
+  content: "\2605";
+  position: absolute;
+  top: -8px;
+  right: -6px;
+  font-size: 1.1rem;
+  color: #ff5cc8;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
 .level-tile small {
   font-size: 0.7rem;
   font-weight: 600;
@@ -146,52 +159,126 @@ button.primary, .button.primary {
 }
 
 .board {
-  --seg: 34px;
-  --tube-w: 46px;
-  --gap: 12px;
-  --per-row: 7;
-  display: flex;
-  flex-wrap: wrap;
+  /* --w (bottle width), --cols, --ratio and the gaps are set by game.js */
+  display: grid;
+  grid-template-columns: repeat(var(--cols), var(--w));
+  column-gap: var(--col-gap);
+  row-gap: var(--row-gap);
   justify-content: center;
-  align-content: center;
-  gap: 28px var(--gap);
-  max-width: calc(var(--per-row) * (var(--tube-w) + var(--gap)));
-  margin: 40px auto 24px;
-  min-height: 300px;
+  align-items: end;
+  padding-top: calc(var(--w) * 0.4);
+  margin: 12px 0 24px;
 }
 
-.tube {
-  width: var(--tube-w);
-  height: calc(var(--seg) * var(--capacity) + 18px);
-  padding: 0 4px 4px;
-  border: 2px solid var(--glass-border);
-  border-top-color: rgba(255, 255, 255, 0.25);
-  border-radius: 6px 6px 22px 22px;
-  background: rgba(255, 255, 255, 0.06);
+/* ---------- Bottles ---------- */
+
+.bottle {
+  position: relative;
+  height: calc(var(--w) * var(--ratio));
   display: flex;
-  flex-direction: column-reverse;
-  overflow: hidden;
+  flex-direction: column;
   cursor: pointer;
   transition: transform 0.15s ease;
 }
 
-.tube.selected {
-  transform: translateY(-18px);
-  box-shadow: 0 0 14px 2px rgba(255, 200, 61, 0.7);
+.bottle.selected { transform: translateY(calc(var(--w) * -0.3)); }
+
+.bottle.collector {
+  height: auto;
+  align-self: stretch;
 }
 
-.tube.complete {
-  border-color: #7ee08a;
-  box-shadow: 0 0 12px 1px rgba(126, 224, 138, 0.6);
+.neck {
+  position: relative;
+  z-index: 2;
+  flex: none;
+  width: 56%;
+  height: calc(var(--w) * 0.3);
+  margin: 0 auto calc(var(--w) * -0.06);
+  border: 2px solid var(--glass-edge);
+  border-bottom: none;
+  border-radius: calc(var(--w) * 0.08) calc(var(--w) * 0.08) 0 0;
+  background: linear-gradient(90deg, #5d5c8d, #525181 45%, #5a5989);
+}
+
+/* the rim at the top of the neck */
+.neck::before {
+  content: "";
+  position: absolute;
+  left: -14%;
+  right: -14%;
+  top: -2px;
+  height: calc(var(--w) * 0.1);
+  border: 2px solid var(--glass-edge);
+  border-radius: calc(var(--w) * 0.06);
+  background: #5d5c8d;
+}
+
+.body {
+  position: relative;
+  flex: 1;
+  border: 2px solid var(--glass-edge);
+  border-radius:
+    calc(var(--w) * 0.42) calc(var(--w) * 0.42) calc(var(--w) * 0.34) calc(var(--w) * 0.34) /
+    calc(var(--w) * 0.3) calc(var(--w) * 0.3) calc(var(--w) * 0.3) calc(var(--w) * 0.3);
+  background: linear-gradient(90deg, #5e5d8e 0%, #545383 25%, #4f4e7d 60%, #5b5a8b 100%);
+  box-shadow: inset 0 0 calc(var(--w) * 0.12) rgba(255, 255, 255, 0.08);
+}
+
+.collector .body {
+  border-radius:
+    calc(var(--w) * 0.3) calc(var(--w) * 0.3) calc(var(--w) * 0.34) calc(var(--w) * 0.34) /
+    calc(var(--w) * 0.24) calc(var(--w) * 0.24) calc(var(--w) * 0.3) calc(var(--w) * 0.3);
+}
+
+/* glass shine */
+.body::after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  left: 13%;
+  width: 11%;
+  top: calc(var(--w) * 0.22);
+  bottom: calc(var(--w) * 0.22);
+  border-radius: calc(var(--w) * 0.06);
+  background: linear-gradient(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.12));
+  pointer-events: none;
+}
+
+.liquid {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  bottom: calc(var(--w) * 0.06);
+  top: calc(var(--w) * 0.2);
+  display: flex;
+  flex-direction: column-reverse;
 }
 
 .seg {
-  height: var(--seg);
+  position: relative;
   flex: none;
-  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+  height: calc(100% / var(--cap));
+  background: linear-gradient(90deg,
+    var(--d) 0%, var(--c) 16%, var(--l) 30%, var(--c) 46%, var(--c) 80%, var(--d) 100%);
 }
 
-.seg:first-child { border-radius: 0 0 16px 16px; }
+.seg:first-child {
+  border-radius: 0 0 calc(var(--w) * 0.3) calc(var(--w) * 0.3) / 0 0 calc(var(--w) * 0.26) calc(var(--w) * 0.26);
+}
+
+/* the liquid surface on top */
+.seg.top::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: calc(var(--w) * 0.24);
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 45%, var(--l), var(--c) 90%);
+}
 
 .seg.new {
   animation: fill 0.25s ease-out;
@@ -203,7 +290,54 @@ button.primary, .button.primary {
   to { transform: scaleY(1); }
 }
 
-.tube.shake { animation: shake 0.3s; }
+.bottle.complete .body,
+.bottle.complete .neck {
+  border-color: #e9ecff;
+}
+
+.bottle.complete .body {
+  box-shadow: 0 0 calc(var(--w) * 0.25) rgba(255, 255, 255, 0.35);
+}
+
+/* collector: rope around the neck and a tag showing its color */
+.rope {
+  position: absolute;
+  z-index: 4;
+  top: calc(var(--w) * 0.1);
+  left: 50%;
+  width: 72%;
+  height: calc(var(--w) * 0.2);
+  transform: translateX(-50%);
+  border-radius: calc(var(--w) * 0.06);
+  background: repeating-linear-gradient(60deg, var(--c) 0 4px, var(--d) 4px 7px);
+}
+
+.tag {
+  position: absolute;
+  z-index: 4;
+  top: calc(var(--w) * 0.28);
+  left: 66%;
+  width: calc(var(--w) * 0.5);
+  height: calc(var(--w) * 0.66);
+  transform: rotate(-28deg);
+  transform-origin: top left;
+  border: 1px solid #c79b84;
+  border-radius: calc(var(--w) * 0.08);
+  background: #f6d7c3;
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.25);
+}
+
+.tag span {
+  position: absolute;
+  left: 25%;
+  right: 25%;
+  top: 24%;
+  bottom: 14%;
+  border-radius: 35% 35% 40% 40%;
+  background: var(--c);
+}
+
+.bottle.shake { animation: shake 0.3s; }
 
 @keyframes shake {
   0%, 100% { translate: 0; }
@@ -258,16 +392,3 @@ button.primary, .button.primary {
 }
 
 .dialog .controls { gap: 12px; }
-
-@media (max-width: 480px) {
-  .board {
-    --seg: 28px;
-    --tube-w: 38px;
-    --gap: 8px;
-    row-gap: 24px;
-    margin-top: 32px;
-  }
-  .board.tall {
-    --seg: 22px;
-  }
-}

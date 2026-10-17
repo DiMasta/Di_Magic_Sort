@@ -29,6 +29,25 @@ const PLAN = [
   [5, 12, 2, 6]
 ];
 
+// "Big" levels, like the real game's: few colors spread over many bottles,
+// plus collector bottles that gather all of one color.
+// [number of levels, colors, bottles per color, empty bottles, collectors].
+const BIG_PLAN = [
+  [1, 3, 2, 2, 1],
+  [1, 4, 2, 2, 1],
+  [1, 4, 3, 2, 1],
+  [1, 5, 3, 2, 2],
+  [2, 6, 3, 2, 2],
+  [4, 6, 4, 2, 2],
+  [3, 7, 4, 2, 2],
+  [2, 8, 4, 2, 2]
+];
+const BIG_CAPACITY = 4;
+// Palette indices used by big levels (yellow, green, pink, purple, blue, orange, red, cyan).
+const BIG_COLORS = [2, 3, 6, 4, 1, 5, 0, 7];
+// Every BIG_EVERY-th level is a big level.
+const BIG_EVERY = 5;
+
 const CANDIDATES_PER_LEVEL = 40;
 const SOLVER_NODE_LIMIT = 200000;
 
@@ -51,12 +70,12 @@ function shuffle(arr, rand) {
   return arr;
 }
 
-function randomPuzzle(colors, empty, capacity, rand) {
+function randomPuzzle(colors, empty, capacity, rand, perColor = 1) {
   const pool = [];
-  for (let c = 0; c < colors; c++) for (let k = 0; k < capacity; k++) pool.push(c);
+  for (let c = 0; c < colors; c++) for (let k = 0; k < capacity * perColor; k++) pool.push(c);
   shuffle(pool, rand);
   const tubes = [];
-  for (let i = 0; i < colors; i++) tubes.push(pool.slice(i * capacity, (i + 1) * capacity));
+  for (let i = 0; i < colors * perColor; i++) tubes.push(pool.slice(i * capacity, (i + 1) * capacity));
   for (let i = 0; i < empty; i++) tubes.push([]);
   return tubes;
 }
@@ -69,14 +88,19 @@ function mixScore(tubes) {
 }
 
 // Depth-first search with a visited set. Returns the move list or null.
-function solve(start, capacity, nodeLimit) {
+function solve(level, nodeLimit) {
+  const { tubes: start, specs } = Rules.setup(level);
+  const normal = specs.filter((sp) => !Rules.isCollector(sp)).length;
   const seen = new Set();
   const moves = [];
   let nodes = 0;
-  const key = (tubes) => tubes.map((t) => t.join(',')).sort().join('|');
+  // Normal tubes are interchangeable; collectors are not.
+  const key = (tubes) =>
+    tubes.slice(0, normal).map((t) => t.join(',')).sort().join('|') +
+    '#' + tubes.slice(normal).map((t) => t.length).join(',');
 
   function dfs(tubes) {
-    if (Rules.isSolved(tubes, capacity)) return true;
+    if (Rules.isSolved(tubes, specs)) return true;
     if (++nodes > nodeLimit) return false;
     const k = key(tubes);
     if (seen.has(k)) return false;
@@ -85,25 +109,33 @@ function solve(start, capacity, nodeLimit) {
     const options = [];
     for (let i = 0; i < tubes.length; i++) {
       const from = tubes[i];
-      if (!from.length || Rules.isTubeComplete(from, capacity)) continue;
+      const done = Rules.isTubeComplete(from, specs[i]);
       let triedEmpty = false;
       for (let j = 0; j < tubes.length; j++) {
+        if (!Rules.canPour(tubes, specs, i, j)) continue;
         const to = tubes[j];
-        if (!Rules.canPour(from, to, capacity)) continue;
-        if (!to.length) {
+        let priority;
+        if (Rules.isCollector(specs[j])) {
+          priority = 0;
+        } else if (done) {
+          continue; // a finished bottle only needs to go to a collector
+        } else if (!to.length) {
           // Moving a single-color tube into an empty one is pointless,
           // and all empty tubes are equivalent.
           if (Rules.isUniform(from) || triedEmpty) continue;
           triedEmpty = true;
+          priority = 2;
+        } else {
+          priority = 1;
         }
-        options.push([i, j, to.length ? 0 : 1]);
+        options.push([i, j, priority]);
       }
     }
     options.sort((a, b) => a[2] - b[2]);
 
     for (const [i, j] of options) {
       const next = Rules.cloneTubes(tubes);
-      Rules.pour(next[i], next[j], capacity);
+      Rules.pour(next, specs, i, j);
       moves.push([i, j]);
       if (dfs(next)) return true;
       moves.pop();
@@ -114,29 +146,55 @@ function solve(start, capacity, nodeLimit) {
   return dfs(start) ? moves.slice() : null;
 }
 
+function pickLevel(seed, label, makeLevel) {
+  const rand = mulberry32(seed);
+  let best = null;
+  for (let c = 0; c < CANDIDATES_PER_LEVEL; c++) {
+    const level = makeLevel(rand);
+    if (level.tubes.some((t) => Rules.isTubeComplete(t, { capacity: level.capacity }))) continue;
+    const score = mixScore(level.tubes);
+    if (best && score <= best.score) continue;
+    const solution = solve(level, SOLVER_NODE_LIMIT);
+    if (solution) best = { level, score, solution };
+  }
+  if (!best) throw new Error(`Could not build a solvable ${label}`);
+  console.log(`${label}: solver found ${best.solution.length} moves`);
+  return best.level;
+}
+
 function generate() {
-  const levels = [];
-  let levelNo = 0;
+  const normal = [];
   for (const [count, colors, empty, capacity] of PLAN) {
     for (let n = 0; n < count; n++) {
-      levelNo++;
-      const rand = mulberry32(levelNo * 7919 + 13);
-      let best = null;
-      for (let c = 0; c < CANDIDATES_PER_LEVEL; c++) {
-        const tubes = randomPuzzle(colors, empty, capacity, rand);
-        if (tubes.some((t) => Rules.isTubeComplete(t, capacity))) continue;
-        const score = mixScore(tubes);
-        if (best && score <= best.score) continue;
-        const solution = solve(tubes, capacity, SOLVER_NODE_LIMIT);
-        if (solution) best = { tubes, score, solution };
-      }
-      if (!best) throw new Error(`Could not build a solvable level ${levelNo}`);
-      levels.push({ capacity, tubes: best.tubes });
-      console.log(
-        `level ${String(levelNo).padStart(2)}: ${colors} colors, ${empty} empty, ` +
-          `capacity ${capacity}, solver found ${best.solution.length} moves`
+      const no = normal.length + 1;
+      normal.push(
+        pickLevel(no * 7919 + 13, `normal ${no} (${colors} colors, capacity ${capacity})`, (rand) => ({
+          capacity,
+          tubes: randomPuzzle(colors, empty, capacity, rand)
+        }))
       );
     }
+  }
+
+  const big = [];
+  for (const [count, colors, perColor, empty, collectors] of BIG_PLAN) {
+    for (let n = 0; n < count; n++) {
+      const no = big.length + 1;
+      big.push(
+        pickLevel(no * 104729 + 7, `big ${no} (${colors} colors, ${colors * perColor + empty} bottles)`, (rand) => {
+          const tubes = randomPuzzle(colors, empty, BIG_CAPACITY, rand, perColor)
+            .map((t) => t.map((c) => BIG_COLORS[c]));
+          const picks = shuffle(BIG_COLORS.slice(0, colors), rand).slice(0, collectors);
+          return { capacity: BIG_CAPACITY, tubes, collectors: picks };
+        })
+      );
+    }
+  }
+
+  const levels = [];
+  while (normal.length || big.length) {
+    const isBig = (levels.length + 1) % BIG_EVERY === 0;
+    levels.push(isBig && big.length ? big.shift() : normal.shift() || big.shift());
   }
   return levels;
 }
@@ -144,7 +202,10 @@ function generate() {
 if (require.main === module) {
   const levels = generate();
   const body = levels
-    .map((l) => `  { capacity: ${l.capacity}, tubes: ${JSON.stringify(l.tubes)} }`)
+    .map((l) => {
+      const collectors = l.collectors ? `, collectors: ${JSON.stringify(l.collectors)}` : '';
+      return `  { capacity: ${l.capacity}, tubes: ${JSON.stringify(l.tubes)}${collectors} }`;
+    })
     .join(',\n');
   const out =
     '// Generated by tools/generate-levels.js. Do not edit by hand.\n' +

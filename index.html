@@ -33,6 +33,10 @@
           var tile = document.createElement('a');
           tile.className = 'level-tile';
           tile.textContent = n;
+          if (LEVELS[n - 1].collectors) {
+            tile.classList.add('big');
+            tile.title = 'Big level';
+          }
           if (Progress.isCompleted(n)) {
             done++;
             tile.classList.add('done');
