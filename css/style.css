@@ -269,10 +269,15 @@ button.primary, .button.primary {
 }
 
 .liquid {
+  /* The liquid fills the glass with the same small gap on the sides and at
+     the bottom, so its curved bottom runs parallel to the bottle's.
+     --lw is its width: the bottle minus the glass borders and both gaps. */
+  --gap: calc(var(--w) * 0.035);
+  --lw: calc(var(--w) - 4px - 2 * var(--gap));
   position: absolute;
-  left: 7%;
-  right: 7%;
-  bottom: calc(var(--w) * 0.05);
+  left: var(--gap);
+  right: var(--gap);
+  bottom: var(--gap);
   top: calc(var(--w) * 0.19);
   display: flex;
   flex-direction: column-reverse;
@@ -287,7 +292,7 @@ button.primary, .button.primary {
 }
 
 .seg:first-child {
-  border-radius: 0 0 50% 50% / 0 0 calc(var(--w) * 0.86 * var(--tilt) / 2) calc(var(--w) * 0.86 * var(--tilt) / 2);
+  border-radius: 0 0 50% 50% / 0 0 calc(var(--lw) * var(--tilt) / 2) calc(var(--lw) * var(--tilt) / 2);
 }
 
 /* Every layer is a short cylinder: a lighter oval surface on top and a
@@ -300,7 +305,7 @@ button.primary, .button.primary {
   position: absolute;
   left: 0;
   right: 0;
-  height: calc(var(--w) * 0.86 * var(--tilt));
+  height: calc(var(--lw) * var(--tilt));
   border-radius: 50%;
 }
 
@@ -310,7 +315,7 @@ button.primary, .button.primary {
   top: 0;
   left: 1px;
   right: 1px;
-  height: calc(var(--w) * 0.86 * var(--tilt) - 2px);
+  height: calc(var(--lw) * var(--tilt) - 2px);
   transform: translateY(-50%);
   background: radial-gradient(ellipse at 50% 45%, var(--l), var(--c) 90%);
 }
@@ -433,6 +438,7 @@ button.primary, .button.primary {
 
 .overlay {
   position: fixed;
+  z-index: 100; /* above the bottles' necks, corks and shine */
   inset: 0;
   background: rgba(10, 5, 35, 0.75);
   display: flex;
