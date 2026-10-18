@@ -17,6 +17,7 @@
     '#3448c5'  // navy
   ];
   var MAX_COLS = 8;
+  var POUR_STEP = 0.16; // seconds for one layer to pour in
   var MAX_BOTTLE_W = 56;
   var MIN_BOTTLE_W = 24;
   var COL_GAP = 0.22; // gaps as a fraction of the bottle width
@@ -113,20 +114,26 @@
     el.className = 'bottle';
     if (i === selected) el.classList.add('selected');
     if (Rules.isCollector(spec)) el.classList.add('collector');
-    if (Rules.isCapped(state.tubes, state.specs, i)) {
-      el.classList.add('complete');
-      var cap = document.createElement('div');
-      cap.className = 'cap';
-      // drop the cap in when this pour just filled the bottle
-      if (lastPour && lastPour.to === i) cap.classList.add('new');
-      el.appendChild(cap);
-    } else if (Rules.isTubeComplete(tube, spec)) {
-      el.classList.add('complete');
-    }
+    var justPoured = lastPour && lastPour.to === i;
 
     var neck = document.createElement('div');
     neck.className = 'neck';
     el.appendChild(neck);
+
+    if (Rules.isCapped(state.tubes, state.specs, i)) {
+      el.classList.add('complete');
+      // the cork sits inside the mouth, between the back and front of the lip
+      var cap = document.createElement('div');
+      cap.className = 'cap';
+      if (justPoured) {
+        // drop the cork in once the liquid has finished rising
+        cap.classList.add('new');
+        cap.style.animationDelay = lastPour.amount * POUR_STEP + 's';
+      }
+      neck.appendChild(cap);
+    } else if (Rules.isTubeComplete(tube, spec)) {
+      el.classList.add('complete');
+    }
 
     var body = document.createElement('div');
     body.className = 'body';
@@ -139,8 +146,11 @@
       seg.className = 'seg';
       colorVars(seg, color);
       if (k === tube.length - 1) seg.classList.add('top');
-      if (lastPour && lastPour.to === i && k >= tube.length - lastPour.amount) {
+      var newIndex = k - (tube.length - (justPoured ? lastPour.amount : 0));
+      if (justPoured && newIndex >= 0) {
+        // poured layers rise one after another, bottom first
         seg.classList.add('new');
+        seg.style.animationDelay = newIndex * POUR_STEP + 's';
       }
       liquid.appendChild(seg);
     });
@@ -172,6 +182,7 @@
     board.style.setProperty('--cols', layout.cols);
     board.style.setProperty('--w', layout.w + 'px');
     board.style.setProperty('--ratio', ratio);
+    board.style.setProperty('--pour-step', POUR_STEP + 's');
     board.style.setProperty('--col-gap', Math.round(layout.w * COL_GAP) + 'px');
     board.style.setProperty('--row-gap', Math.round(layout.w * ROW_GAP) + 'px');
     board.innerHTML = '';
@@ -230,11 +241,11 @@
       saveHistory();
       var before = tubes[i].length;
       var amount = Rules.pour(tubes, specs, selected, i);
-      Sound.pour(amount, before, specs[i].capacity);
+      Sound.pour(amount, before, specs[i].capacity, POUR_STEP);
       lastPour = { to: i, amount: amount };
       state.moves++;
       selected = null;
-      if (Rules.isCapped(tubes, specs, i)) Sound.fill(0.3);
+      if (Rules.isCapped(tubes, specs, i)) Sound.fill(amount * POUR_STEP + 0.2);
       if (Rules.isSolved(tubes, specs)) return win();
     } else if (canSelect(i)) {
       // can't pour there: pick up the tapped bottle instead
@@ -250,7 +261,9 @@
 
   function win() {
     won = true;
-    Sound.win(0.6);
+    // wait for the last pour (and its cork) to finish before celebrating
+    var pourTime = lastPour.amount * POUR_STEP;
+    Sound.win(pourTime + 0.5);
     render();
     Progress.complete(levelNo, state.moves);
 
@@ -266,7 +279,7 @@
     document.getElementById('win-text').textContent = text;
     setTimeout(function () {
       document.getElementById('win').hidden = false;
-    }, 400);
+    }, (pourTime + 0.7) * 1000);
   }
 
   undoBtn.addEventListener('click', function () {

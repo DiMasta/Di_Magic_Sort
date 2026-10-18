@@ -47,8 +47,9 @@ var Sound = (function () {
     // Putting a bottle back down: a falling "pop".
     drop: function () { tone(700, 380, 0, 0.1, 'sine', 0.16); },
     // Pouring: bubbly glugs whose pitch rises as the bottle fills up.
-    pour: function (amount, filledBefore, capacity) {
-      var count = 3 + amount * 2;
+    // `step` is how long one layer takes to pour in.
+    pour: function (amount, filledBefore, capacity, step) {
+      var count = Math.max(3, Math.round((amount * step) / 0.05));
       for (var i = 0; i < count; i++) {
         var level = (filledBefore + (amount * i) / count) / capacity;
         var f = 260 + level * 520 + Math.random() * 60;
