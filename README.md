@@ -13,6 +13,15 @@ with a rope and a color tag. A collector only takes its own color, holds all
 of it, and liquid can't be poured back out of it. A big level is finished
 when the collectors are full and every other bottle is sorted.
 
+Some big levels have variations from the real game:
+- an **open collector**: a tall bottle with no tag, which takes whichever
+  color you pour into it first and then only that color;
+- **no empty bottles**: the tall bottle in the middle is the only free space.
+
+The colors change every 5 levels between three themes: **night** (bright
+colors on purple), **stone** (earthy colors on grey) and **lagoon** (bright
+colors with white and red on deep teal).
+
 - **Undo** takes back the last move.
 - **Restart** starts the level again.
 - **+1 Tube** adds one extra empty tube (once per level) if you get stuck.
@@ -56,7 +65,7 @@ again.
 ## Files
 
 - `index.html` – level select page
-- `level.html`, `js/game.js` – the game board
+- `level.html`, `js/game.js` – the game board and the color themes
 - `js/rules.js` – pouring rules, shared by the game and the generator
 - `js/progress.js` – saved progress
 - `js/sound.js` – sound effects, made with the Web Audio API (no sound files)

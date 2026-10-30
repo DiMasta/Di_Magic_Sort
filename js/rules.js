@@ -4,6 +4,9 @@
 //   { capacity: n, color: c }       a collector: a big bottle that only takes
 //                                   color c, holds all of it, and can't be
 //                                   poured from.
+//   { capacity: n, color: -1 }      an open collector: the same, but it has no
+//                                   tag and takes whichever color is poured
+//                                   into it first.
 (function (root) {
   'use strict';
 
@@ -29,20 +32,31 @@
   }
 
   // Builds the starting tubes and specs of a level. Level format:
-  //   { capacity, tubes: [[...], ...], collectors: [color, ...] }
-  // Collectors start empty and come after the normal tubes.
+  //   { capacity, tubes: [[...], ...], collectors: [color or -1, ...] }
+  // Collectors start empty and come after the normal tubes. A collector
+  // holds all of its color; an open one holds as much as the biggest color.
   function setup(level) {
     var tubes = level.tubes.map(function (t) { return t.slice(); });
     var specs = tubes.map(function () { return { capacity: level.capacity }; });
+    var totals = {};
+    level.tubes.forEach(function (t) {
+      t.forEach(function (c) { totals[c] = (totals[c] || 0) + 1; });
+    });
+    var biggest = Math.max.apply(null, Object.keys(totals).map(function (c) { return totals[c]; }));
     (level.collectors || []).forEach(function (color) {
-      var total = 0;
-      level.tubes.forEach(function (t) {
-        t.forEach(function (c) { if (c === color) total++; });
-      });
       tubes.push([]);
-      specs.push({ capacity: total, color: color });
+      specs.push({ capacity: color === -1 ? biggest : totals[color], color: color });
     });
     return { tubes: tubes, specs: specs };
+  }
+
+  // Can collector j still take color c?
+  function collectorTakes(tubes, specs, j, c) {
+    var spec = specs[j];
+    var tube = tubes[j];
+    if (tube.length >= spec.capacity) return false;
+    if (spec.color === -1) return !tube.length || tube[0] === c;
+    return spec.color === c;
   }
 
   function isTubeComplete(tube, spec) {
@@ -50,14 +64,16 @@
   }
 
   // A finished bottle gets a cap and can't be used any more: a full
-  // collector, or a full single-color bottle whose color has no collector
-  // (if it has one, the bottle still has to be poured into it).
+  // collector, or a full single-color bottle that no collector could still
+  // take (if one could, the bottle may still have to be poured into it).
   function isCapped(tubes, specs, i) {
     var spec = specs[i];
     if (isCollector(spec)) return tubes[i].length === spec.capacity;
     if (!isTubeComplete(tubes[i], spec)) return false;
     var color = tubes[i][0];
-    return !specs.some(function (s) { return s.color === color; });
+    return !specs.some(function (s, j) {
+      return isCollector(s) && collectorTakes(tubes, specs, j, color);
+    });
   }
 
   function canPour(tubes, specs, i, j) {
@@ -67,7 +83,7 @@
     if (!from.length || isCollector(specs[i]) || isCapped(tubes, specs, i)) return false;
     if (to.length >= specs[j].capacity) return false;
     var c = topColor(from);
-    if (isCollector(specs[j])) return c === specs[j].color;
+    if (isCollector(specs[j])) return collectorTakes(tubes, specs, j, c);
     return !to.length || topColor(to) === c;
   }
 

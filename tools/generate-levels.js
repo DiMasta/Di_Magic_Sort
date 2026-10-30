@@ -30,17 +30,23 @@ const PLAN = [
 ];
 
 // "Big" levels, like the real game's: few colors spread over many bottles,
-// plus collector bottles that gather all of one color.
-// [number of levels, colors, bottles per color, empty bottles, collectors].
+// plus collector bottles that gather all of one color. Tagged collectors
+// take one given color; open collectors (no tag) take whichever color is
+// poured in first. With no empty bottles, the collector is the only space.
+// [number of levels, colors, bottles per color, empty bottles, tagged, open].
 const BIG_PLAN = [
-  [1, 3, 2, 2, 1],
-  [1, 4, 2, 2, 1],
-  [1, 4, 3, 2, 1],
-  [1, 5, 3, 2, 2],
-  [2, 6, 3, 2, 2],
-  [4, 6, 4, 2, 2],
-  [3, 7, 4, 2, 2],
-  [2, 8, 4, 2, 2]
+  [1, 3, 2, 2, 1, 0],
+  [1, 4, 2, 2, 1, 0],
+  [1, 4, 3, 2, 1, 0],
+  [1, 5, 3, 2, 2, 0],
+  [1, 6, 3, 2, 2, 0],
+  [1, 6, 3, 1, 0, 1],
+  [2, 6, 4, 2, 2, 0],
+  [1, 6, 4, 0, 1, 0],
+  [1, 6, 4, 0, 0, 1],
+  [2, 7, 4, 2, 2, 0],
+  [1, 7, 4, 1, 1, 1],
+  [2, 8, 4, 2, 2, 0]
 ];
 const BIG_CAPACITY = 4;
 // Palette indices used by big levels (yellow, green, pink, purple, blue, orange, red, cyan).
@@ -94,10 +100,11 @@ function solve(level, nodeLimit) {
   const seen = new Set();
   const moves = [];
   let nodes = 0;
-  // Normal tubes are interchangeable; collectors are not.
+  // Normal tubes are interchangeable; collectors are not (and an open one
+  // also remembers which color it took).
   const key = (tubes) =>
     tubes.slice(0, normal).map((t) => t.join(',')).sort().join('|') +
-    '#' + tubes.slice(normal).map((t) => t.length).join(',');
+    '#' + tubes.slice(normal).map((t) => t.length + ':' + (t.length ? t[0] : '')).join(',');
 
   function dfs(tubes) {
     if (Rules.isSolved(tubes, specs)) return true;
@@ -177,14 +184,17 @@ function generate() {
   }
 
   const big = [];
-  for (const [count, colors, perColor, empty, collectors] of BIG_PLAN) {
+  for (const [count, colors, perColor, empty, tagged, open] of BIG_PLAN) {
     for (let n = 0; n < count; n++) {
       const no = big.length + 1;
+      const label = `big ${no} (${colors} colors, ${colors * perColor + empty} bottles, ` +
+        `${tagged} tagged + ${open} open collectors)`;
       big.push(
-        pickLevel(no * 104729 + 7, `big ${no} (${colors} colors, ${colors * perColor + empty} bottles)`, (rand) => {
+        pickLevel(no * 104729 + 7, label, (rand) => {
           const tubes = randomPuzzle(colors, empty, BIG_CAPACITY, rand, perColor)
             .map((t) => t.map((c) => BIG_COLORS[c]));
-          const picks = shuffle(BIG_COLORS.slice(0, colors), rand).slice(0, collectors);
+          const picks = shuffle(BIG_COLORS.slice(0, colors), rand).slice(0, tagged);
+          for (let k = 0; k < open; k++) picks.push(-1);
           return { capacity: BIG_CAPACITY, tubes, collectors: picks };
         })
       );

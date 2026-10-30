@@ -1,20 +1,68 @@
 (function () {
   'use strict';
 
-  // Ordered so that the first (easy) levels use the most distinct colors.
-  var COLORS = [
-    '#f2373b', // red
-    '#1fa4ec', // blue
-    '#ffcc1f', // yellow
-    '#7cc417', // green
-    '#8b2cf5', // purple
-    '#f5801e', // orange
-    '#ff5cc8', // pink
-    '#3fe0d0', // cyan
-    '#a0643c', // brown
-    '#f2f2f7', // white
-    '#1f8f4a', // dark green
-    '#3448c5'  // navy
+  // Color themes, like the real game's: each one has its own background and
+  // its own set of liquid colors. They take turns every 5 levels.
+  // Levels store color numbers; a theme says which color each number is.
+  // Numbers 0-7 are used the most (big levels use 2, 3, 6, 4, 1, 5, 0, 7),
+  // so those are the most distinct colors in every theme.
+  var THEMES = [
+    {
+      name: 'night',
+      bg: '#403f6b', bg2: '#4d4c7c', edge: '#9599d0', muted: '#b9b0e8',
+      colors: [
+        '#f2373b', // 0 red
+        '#1fa4ec', // 1 blue
+        '#ffcc1f', // 2 yellow
+        '#7cc417', // 3 green
+        '#8b2cf5', // 4 purple
+        '#f5801e', // 5 orange
+        '#ff5cc8', // 6 pink
+        '#3fe0d0', // 7 cyan
+        '#a0643c', // 8 brown
+        '#f2f2f7', // 9 white
+        '#1f8f4a', // 10 dark green
+        '#3448c5'  // 11 navy
+      ]
+    },
+    {
+      // earthy colors on grey, like the real game's "coffee" levels
+      name: 'stone',
+      bg: '#4b5254', bg2: '#5a6264', edge: '#b3bec2', muted: '#c9d2d5',
+      colors: [
+        '#2f8a8f', // 0 teal
+        '#e3833f', // 1 orange
+        '#f2bd1d', // 2 yellow
+        '#a8998a', // 3 taupe
+        '#9c5a6d', // 4 mauve
+        '#efefef', // 5 white
+        '#6b1d24', // 6 maroon
+        '#7f9a3a', // 7 olive
+        '#2e3f78', // 8 navy
+        '#d0577f', // 9 raspberry
+        '#56a3d9', // 10 sky blue
+        '#2b2b2b'  // 11 black
+      ]
+    },
+    {
+      // bright colors with white and red on deep teal
+      name: 'lagoon',
+      bg: '#22505a', bg2: '#2c6370', edge: '#9fd3dc', muted: '#b3dde4',
+      colors: [
+        '#8c3bf0', // 0 purple
+        '#2196f3', // 1 blue
+        '#f9c623', // 2 yellow
+        '#6cbf2a', // 3 green
+        '#f4f4f4', // 4 white
+        '#ff5fb8', // 5 pink
+        '#e8262f', // 6 red
+        '#f57c1f', // 7 orange
+        '#7a4a2a', // 8 brown
+        '#1d2f8f', // 9 navy
+        '#c6e84a', // 10 lime
+        '#b0b0b0'  // 11 grey
+      ]
+    }
   ];
   var MAX_COLS = 8;
   var POUR_STEP = 0.16; // seconds for one layer to pour in
@@ -30,6 +78,7 @@
   }
 
   var level = LEVELS[levelNo - 1];
+  var theme = THEMES[Math.floor((levelNo - 1) / 5) % THEMES.length];
   var capacity = level.capacity;
   // Bottle height / width, neck included.
   var ratio = 0.62 * capacity + 0.7;
@@ -56,12 +105,39 @@
     return 'rgb(' + rgb.join(',') + ')';
   }
 
+  // Mixes a color toward white (amount > 0) or black (amount < 0) as hex.
+  function mix(hex, amount) {
+    return '#' + shade(hex, amount).match(/\d+/g).map(function (v) {
+      return ('0' + Number(v).toString(16)).slice(-2);
+    }).join('');
+  }
+
+  function applyTheme() {
+    var root = document.documentElement.style;
+    var bg = theme.bg;
+    root.setProperty('--bg', bg);
+    root.setProperty('--bg-2', theme.bg2);
+    root.setProperty('--glass-edge', theme.edge);
+    root.setProperty('--muted', theme.muted);
+    root.setProperty('--glass-1', mix(bg, 0.16));
+    root.setProperty('--glass-2', mix(bg, 0.10));
+    root.setProperty('--glass-3', mix(bg, 0.08));
+    root.setProperty('--glass-4', mix(bg, 0.14));
+    root.setProperty('--lip-1', mix(bg, 0.22));
+    root.setProperty('--lip-2', mix(bg, 0.17));
+    root.setProperty('--hole-1', mix(bg, -0.27));
+    root.setProperty('--hole-2', mix(bg, -0.05));
+    document.body.dataset.theme = theme.name;
+  }
+
   function colorVars(el, color) {
-    var c = COLORS[color];
+    var c = theme.colors[color];
     el.style.setProperty('--c', c);
     el.style.setProperty('--l', shade(c, 0.35));
     el.style.setProperty('--d', shade(c, -0.25));
   }
+
+  applyTheme();
 
   function start() {
     var s = Rules.setup(level);
@@ -82,8 +158,9 @@
     });
   }
 
-  // Collectors are tall bottles spanning several rows: the first one on the
-  // left (top rows), the second on the right (bottom rows), like the real game.
+  // Collectors are tall bottles spanning several rows, like the real game:
+  // a single one stands in the middle column, from top to bottom; with two,
+  // the first is on the left (top rows) and the second on the right (bottom).
   function collectorSpan(rows, collectors) {
     return collectors === 2 && rows >= 3 ? rows - 1 : rows;
   }
@@ -114,6 +191,7 @@
     el.className = 'bottle';
     if (i === selected) el.classList.add('selected');
     if (Rules.isCollector(spec)) el.classList.add('collector');
+    if (spec.color === -1) el.classList.add('open');
     var justPoured = lastPour && lastPour.to === i;
 
     var neck = document.createElement('div');
@@ -157,7 +235,9 @@
     body.appendChild(liquid);
     el.appendChild(body);
 
-    if (Rules.isCollector(spec)) {
+    // a tagged collector has a rope and a tag showing its color;
+    // an open one is a plain tall bottle
+    if (Rules.isCollector(spec) && spec.color !== -1) {
       var rope = document.createElement('div');
       rope.className = 'rope';
       var tag = document.createElement('div');
@@ -192,8 +272,13 @@
       var el = makeBottle(tube, specs[i], i);
       if (Rules.isCollector(specs[i])) {
         var first = placed++ === 0;
-        el.style.gridColumn = first ? 1 : layout.cols;
-        el.style.gridRow = (first ? 1 : layout.rows - layout.span + 1) + ' / span ' + layout.span;
+        if (collectors === 1) {
+          el.style.gridColumn = Math.ceil(layout.cols / 2);
+          el.style.gridRow = '1 / span ' + layout.span;
+        } else {
+          el.style.gridColumn = first ? 1 : layout.cols;
+          el.style.gridRow = (first ? 1 : layout.rows - layout.span + 1) + ' / span ' + layout.span;
+        }
       }
       board.appendChild(el);
     });

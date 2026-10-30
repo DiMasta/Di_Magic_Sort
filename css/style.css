@@ -6,6 +6,16 @@
   --accent: #ffc83d;
   --glass: rgba(255, 255, 255, 0.12);
   --glass-edge: #9599d0;
+  /* Glass shades: the background mixed with a little white (or black for
+     the inside of the mouth). game.js recomputes them for each color theme. */
+  --glass-1: #5e5d8e;
+  --glass-2: #545383;
+  --glass-3: #4f4e7d;
+  --glass-4: #5b5a8b;
+  --lip-1: #6a69a0;
+  --lip-2: #605f94;
+  --hole-1: #2f2e57;
+  --hole-2: #3d3c68;
 }
 
 * { box-sizing: border-box; }
@@ -211,7 +221,7 @@ button.primary, .button.primary {
   border: 2px solid var(--edge);
   border-top: none;
   border-bottom: none;
-  background: linear-gradient(90deg, #5d5c8d, #525181 45%, #5a5989);
+  background: linear-gradient(90deg, var(--glass-1), var(--glass-2) 45%, var(--glass-4));
 }
 
 /* The mouth of the bottle, seen from slightly above like the liquid surface.
@@ -234,12 +244,12 @@ button.primary, .button.primary {
 
 .neck::before {
   background: radial-gradient(ellipse closest-side,
-    #2f2e57 0%, #3d3c68 58%, #6a69a0 64%, #605f94 100%);
+    var(--hole-1) 0%, var(--hole-2) 58%, var(--lip-1) 64%, var(--lip-2) 100%);
 }
 
 .neck::after {
   background: radial-gradient(ellipse closest-side,
-    transparent 63%, #6a69a0 64%, #605f94 100%);
+    transparent 63%, var(--lip-1) 64%, var(--lip-2) 100%);
   clip-path: inset(50% -3px -3px -3px);
 }
 
@@ -250,7 +260,7 @@ button.primary, .button.primary {
   /* shoulders and bottom are halves of an oval with the same tilt as the
      liquid surface and the mouth, so the whole bottle shares one perspective */
   border-radius: 50% / calc(var(--w) * var(--tilt) / 2);
-  background: linear-gradient(90deg, #5e5d8e 0%, #545383 25%, #4f4e7d 60%, #5b5a8b 100%);
+  background: linear-gradient(90deg, var(--glass-1) 0%, var(--glass-2) 25%, var(--glass-3) 60%, var(--glass-4) 100%);
   box-shadow: inset 0 0 calc(var(--w) * 0.12) rgba(255, 255, 255, 0.08);
 }
 
