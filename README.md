@@ -18,9 +18,12 @@ Some big levels have variations from the real game:
   color you pour into it first and then only that color;
 - **no empty bottles**: the tall bottle in the middle is the only free space.
 
-The colors change every 5 levels between three themes: **night** (bright
-colors on purple), **stone** (earthy colors on grey) and **lagoon** (bright
-colors with white and red on deep teal).
+The liquid colors change every 5 levels between three themes: **night**
+(bright colors), **stone** (earthy colors) and **lagoon** (bright colors with
+white and red). Every level also gets its own background: each theme has 5
+background colors with a simple texture (stars, dots, grid, checks, scales,
+tiles, stripes, ripples, plaid, zigzag or bubbles), so neighbouring levels
+always look different.
 
 - **Undo** takes back the last move.
 - **Restart** starts the level again.

@@ -34,6 +34,18 @@ body {
   user-select: none;
 }
 
+/* the level's background texture (set by game.js), behind everything */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: var(--texture, none);
+  background-size: var(--texture-size, auto);
+  background-position: var(--texture-position, 0 0);
+}
+
 h1 {
   margin: 0;
   font-size: 1.6rem;

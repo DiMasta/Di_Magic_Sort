@@ -1,15 +1,86 @@
 (function () {
   'use strict';
 
-  // Color themes, like the real game's: each one has its own background and
-  // its own set of liquid colors. They take turns every 5 levels.
+  // Simple background textures: faint white patterns drawn with CSS
+  // gradients, so they work on any background color.
+  var W = 'rgba(255,255,255,';
+  var TEXTURES = {
+    stars: {
+      image: 'radial-gradient(1.5px 1.5px at 20px 30px, ' + W + '.45), transparent),' +
+        'radial-gradient(1px 1px at 80px 70px, ' + W + '.4), transparent),' +
+        'radial-gradient(1.5px 1.5px at 140px 20px, ' + W + '.3), transparent),' +
+        'radial-gradient(1px 1px at 110px 130px, ' + W + '.4), transparent),' +
+        'radial-gradient(2px 2px at 40px 150px, ' + W + '.25), transparent)',
+      size: '170px 170px'
+    },
+    dots: {
+      image: 'radial-gradient(circle, ' + W + '.07) 2.5px, transparent 3px)',
+      size: '24px 24px'
+    },
+    grid: {
+      image: 'linear-gradient(' + W + '.05) 1px, transparent 1px),' +
+        'linear-gradient(90deg, ' + W + '.05) 1px, transparent 1px)',
+      size: '32px 32px'
+    },
+    checks: {
+      image: 'conic-gradient(' + W + '.045) 90deg, transparent 90deg 180deg, ' +
+        W + '.045) 180deg 270deg, transparent 270deg)',
+      size: '48px 48px'
+    },
+    stripes: {
+      image: 'repeating-linear-gradient(45deg, ' + W + '.045) 0 14px, transparent 14px 28px)',
+      size: 'auto'
+    },
+    scales: {
+      image: 'radial-gradient(circle at 50% 0, transparent 13px, ' + W + '.06) 14px, ' +
+        W + '.06) 16px, transparent 17px)',
+      size: '32px 16px'
+    },
+    bubbles: {
+      image: 'radial-gradient(circle at 30% 30%, ' + W + '.07) 0 14px, transparent 15px),' +
+        'radial-gradient(circle at 75% 70%, ' + W + '.05) 0 22px, transparent 23px),' +
+        'radial-gradient(circle at 82% 15%, ' + W + '.06) 0 6px, transparent 7px)',
+      size: '140px 140px'
+    },
+    ripples: {
+      image: 'repeating-radial-gradient(circle at 0 0, transparent 0 18px, ' + W + '.045) 18px 20px)',
+      size: '80px 80px'
+    },
+    tiles: {
+      image: 'linear-gradient(45deg, ' + W + '.045) 25%, transparent 25% 75%, ' + W + '.045) 75%),' +
+        'linear-gradient(45deg, ' + W + '.045) 25%, transparent 25% 75%, ' + W + '.045) 75%)',
+      size: '40px 40px',
+      position: '0 0, 20px 20px'
+    },
+    plaid: {
+      image: 'repeating-linear-gradient(0deg, ' + W + '.04) 0 10px, transparent 10px 40px),' +
+        'repeating-linear-gradient(90deg, ' + W + '.04) 0 10px, transparent 10px 40px)',
+      size: 'auto'
+    },
+    zigzag: {
+      image: 'linear-gradient(135deg, ' + W + '.05) 25%, transparent 25%),' +
+        'linear-gradient(225deg, ' + W + '.05) 25%, transparent 25%)',
+      size: '40px 40px'
+    }
+  };
+
+  // Color themes, like the real game's: each one has its own set of liquid
+  // colors and 5 backgrounds (a color and a texture) that suit them. The
+  // themes take turns every 5 levels, and each of those levels gets one of
+  // the theme's backgrounds.
   // Levels store color numbers; a theme says which color each number is.
   // Numbers 0-7 are used the most (big levels use 2, 3, 6, 4, 1, 5, 0, 7),
   // so those are the most distinct colors in every theme.
   var THEMES = [
     {
       name: 'night',
-      bg: '#403f6b', bg2: '#4d4c7c', edge: '#9599d0', muted: '#b9b0e8',
+      backgrounds: [
+        ['#403f6b', 'stars'],   // purple
+        ['#55304f', 'dots'],    // berry
+        ['#394660', 'grid'],    // slate
+        ['#4a3a35', 'checks'],  // cocoa
+        ['#26395c', 'scales']   // ocean
+      ],
       colors: [
         '#f2373b', // 0 red
         '#1fa4ec', // 1 blue
@@ -28,7 +99,13 @@
     {
       // earthy colors on grey, like the real game's "coffee" levels
       name: 'stone',
-      bg: '#4b5254', bg2: '#5a6264', edge: '#b3bec2', muted: '#c9d2d5',
+      backgrounds: [
+        ['#4b5254', 'tiles'],   // grey
+        ['#45524a', 'stripes'], // sage
+        ['#455060', 'ripples'], // blue grey
+        ['#57504b', 'plaid'],   // warm grey
+        ['#39484b', 'zigzag']   // charcoal
+      ],
       colors: [
         '#2f8a8f', // 0 teal
         '#e3833f', // 1 orange
@@ -47,7 +124,13 @@
     {
       // bright colors with white and red on deep teal
       name: 'lagoon',
-      bg: '#22505a', bg2: '#2c6370', edge: '#9fd3dc', muted: '#b3dde4',
+      backgrounds: [
+        ['#22505a', 'bubbles'], // teal
+        ['#23493b', 'scales'],  // deep green
+        ['#1f3340', 'stars'],   // midnight
+        ['#2e2f63', 'zigzag'],  // indigo
+        ['#4f2533', 'dots']     // wine
+      ],
       colors: [
         '#8c3bf0', // 0 purple
         '#2196f3', // 1 blue
@@ -79,6 +162,7 @@
 
   var level = LEVELS[levelNo - 1];
   var theme = THEMES[Math.floor((levelNo - 1) / 5) % THEMES.length];
+  var background = theme.backgrounds[(levelNo - 1) % theme.backgrounds.length];
   var capacity = level.capacity;
   // Bottle height / width, neck included.
   var ratio = 0.62 * capacity + 0.7;
@@ -112,13 +196,16 @@
     }).join('');
   }
 
+  // Sets the level's background, and the glass and text shades that go
+  // with it (all worked out from the background color).
   function applyTheme() {
     var root = document.documentElement.style;
-    var bg = theme.bg;
+    var bg = background[0];
+    var texture = TEXTURES[background[1]];
     root.setProperty('--bg', bg);
-    root.setProperty('--bg-2', theme.bg2);
-    root.setProperty('--glass-edge', theme.edge);
-    root.setProperty('--muted', theme.muted);
+    root.setProperty('--bg-2', mix(bg, 0.08));
+    root.setProperty('--glass-edge', mix(bg, 0.48));
+    root.setProperty('--muted', mix(bg, 0.66));
     root.setProperty('--glass-1', mix(bg, 0.16));
     root.setProperty('--glass-2', mix(bg, 0.10));
     root.setProperty('--glass-3', mix(bg, 0.08));
@@ -127,7 +214,11 @@
     root.setProperty('--lip-2', mix(bg, 0.17));
     root.setProperty('--hole-1', mix(bg, -0.27));
     root.setProperty('--hole-2', mix(bg, -0.05));
+    root.setProperty('--texture', texture.image);
+    root.setProperty('--texture-size', texture.size);
+    root.setProperty('--texture-position', texture.position || '0 0');
     document.body.dataset.theme = theme.name;
+    document.body.dataset.texture = background[1];
   }
 
   function colorVars(el, color) {
