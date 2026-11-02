@@ -149,7 +149,7 @@
   ];
   var MAX_COLS = 8;
   var POUR_STEP = 0.16; // seconds for one layer to pour in
-  var MAX_BOTTLE_W = 56;
+  var MAX_BOTTLE_W = 90;
   var MIN_BOTTLE_W = 24;
   var COL_GAP = 0.22; // gaps as a fraction of the bottle width
   var ROW_GAP = 0.45;
@@ -256,7 +256,9 @@
     return collectors === 2 && rows >= 3 ? rows - 1 : rows;
   }
 
-  // Picks the grid (columns x rows) that gives the biggest bottles on screen.
+  // Picks the grid (columns x rows) that fills the screen best: the biggest
+  // bottles, with as few empty spots as possible, and an odd number of
+  // columns when a single collector stands in the middle.
   function computeLayout(normal, collectors) {
     var availW = board.clientWidth;
     var top = board.getBoundingClientRect().top + window.scrollY;
@@ -266,15 +268,74 @@
     for (var cols = collectors + 1; cols <= MAX_COLS; cols++) {
       var rows = 1;
       while (cols * rows - collectors * collectorSpan(rows, collectors) < normal) rows++;
-      var wByWidth = availW / (cols + (cols - 1) * COL_GAP);
+      var holes = cols * rows - collectors * collectorSpan(rows, collectors) - normal;
+      var wByWidth = availW / (cols * (1 + COL_GAP));
       var wByHeight = availH / (rows * ratio + (rows - 1) * ROW_GAP + 0.4);
-      var w = Math.max(MIN_BOTTLE_W, Math.min(MAX_BOTTLE_W, wByWidth, wByHeight));
-      if (!best || w > best.w + 0.5 || (Math.abs(w - best.w) <= 0.5 && rows < best.rows)) {
-        best = { cols: cols, rows: rows, w: Math.floor(w) };
+      // score on the real size; the minimum size only applies when drawing
+      var w = Math.min(MAX_BOTTLE_W, wByWidth, wByHeight);
+      var score = w * Math.pow(0.94, holes) * (collectors === 1 && cols % 2 === 0 ? 0.85 : 1);
+      if (!best || score > best.score) {
+        best = { cols: cols, rows: rows, w: Math.floor(Math.max(MIN_BOTTLE_W, w)), score: score };
       }
     }
     best.span = collectorSpan(best.rows, collectors);
     return best;
+  }
+
+  // Grid positions for every bottle. Each column is two half-tracks wide, so
+  // a short last row can be centered exactly, even between whole columns.
+  // Returns [{ col: first half-track, row, span: rows }] in tube order.
+  function placeBottles(specs, layout) {
+    var cols = layout.cols;
+    var rows = layout.rows;
+    var used = [];
+    for (var r = 1; r <= rows; r++) used[r] = [];
+    var places = [];
+    var collectorCount = specs.filter(Rules.isCollector).length;
+    var placed = 0;
+
+    specs.forEach(function (spec, i) {
+      if (!Rules.isCollector(spec)) return;
+      var first = placed++ === 0;
+      var col, row;
+      if (collectorCount === 1) {
+        col = Math.ceil(cols / 2);
+        row = 1;
+      } else {
+        col = first ? 1 : cols;
+        row = first ? 1 : rows - layout.span + 1;
+      }
+      for (var k = 0; k < layout.span; k++) used[row + k][col] = true;
+      places[i] = { col: 2 * col - 1, row: row, span: layout.span };
+    });
+
+    var normal = [];
+    specs.forEach(function (spec, i) { if (!Rules.isCollector(spec)) normal.push(i); });
+    var next = 0;
+    for (r = 1; r <= rows && next < normal.length; r++) {
+      // runs of free columns in this row (a middle collector splits a row in two)
+      var runs = [];
+      for (var c = 1; c <= cols; c++) {
+        if (used[r][c]) continue;
+        if (runs.length && runs[runs.length - 1].end === c - 1) runs[runs.length - 1].end = c;
+        else runs.push({ start: c, end: c });
+      }
+      var free = runs.reduce(function (n, run) { return n + run.end - run.start + 1; }, 0);
+      var left = normal.length - next;
+      var share = Math.min(left, free);
+      runs.forEach(function (run, k) {
+        var size = run.end - run.start + 1;
+        // split a short last row evenly between the runs, then center it in each
+        var count = k === runs.length - 1 ? share : Math.min(share, Math.round(share * size / free));
+        free -= size;
+        share -= count;
+        var startTrack = 2 * (run.start - 1) + (size - count) + 1;
+        for (var j = 0; j < count; j++) {
+          places[normal[next++]] = { col: startTrack + 2 * j, row: r, span: 1 };
+        }
+      });
+    }
+    return places;
   }
 
   function makeBottle(tube, spec, i) {
@@ -350,7 +411,7 @@
     var collectors = specs.filter(Rules.isCollector).length;
     var layout = computeLayout(tubes.length - collectors, collectors);
 
-    board.style.setProperty('--cols', layout.cols);
+    board.style.setProperty('--tracks', layout.cols * 2);
     board.style.setProperty('--w', layout.w + 'px');
     board.style.setProperty('--ratio', ratio);
     board.style.setProperty('--pour-step', POUR_STEP + 's');
@@ -358,19 +419,11 @@
     board.style.setProperty('--row-gap', Math.round(layout.w * ROW_GAP) + 'px');
     board.innerHTML = '';
 
-    var placed = 0;
+    var places = placeBottles(specs, layout);
     tubes.forEach(function (tube, i) {
       var el = makeBottle(tube, specs[i], i);
-      if (Rules.isCollector(specs[i])) {
-        var first = placed++ === 0;
-        if (collectors === 1) {
-          el.style.gridColumn = Math.ceil(layout.cols / 2);
-          el.style.gridRow = '1 / span ' + layout.span;
-        } else {
-          el.style.gridColumn = first ? 1 : layout.cols;
-          el.style.gridRow = (first ? 1 : layout.rows - layout.span + 1) + ' / span ' + layout.span;
-        }
-      }
+      el.style.gridColumn = places[i].col + ' / span 2';
+      el.style.gridRow = places[i].row + ' / span ' + places[i].span;
       board.appendChild(el);
     });
 

@@ -192,11 +192,13 @@ button.primary, .button.primary {
 }
 
 .board {
-  /* --w (bottle width), --cols, --ratio and the gaps are set by game.js */
+  /* --w (bottle width), --tracks, --ratio and the gaps are set by game.js.
+     Each column is two half-tracks (bottle plus gap), so a short last row
+     can be centered exactly. */
   --tilt: 0.29; /* height/width of ovals: how much we look down into the bottles */
   display: grid;
-  grid-template-columns: repeat(var(--cols), var(--w));
-  column-gap: var(--col-gap);
+  grid-template-columns: repeat(var(--tracks), calc((var(--w) + var(--col-gap)) / 2));
+  column-gap: 0;
   row-gap: var(--row-gap);
   justify-content: center;
   align-items: end;
@@ -209,6 +211,8 @@ button.primary, .button.primary {
 .bottle {
   --edge: var(--glass-edge);
   position: relative;
+  width: var(--w);
+  justify-self: center;
   height: calc(var(--w) * var(--ratio));
   display: flex;
   flex-direction: column;
